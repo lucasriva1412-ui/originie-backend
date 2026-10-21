@@ -1,12 +1,47 @@
-import express from 'express';
-import mysql from 'mysql2/promise';
+
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+
+import banco from "./configuracao/banco_dados";
+import rotasAutenticacao from "./rotas/rotas_autenticacao";
+
 const app = express();
-app.use(express.json());
-app.get('/api/health', async (_req, res) => {
+
+const origensPermitidas = (
+  process.env.CORS_ORIGIN ?? "http://localhost:5173"
+)
+  .split(",")
+  .map(origem => origem.trim());
+
+app.use(cors({
+  origin: origensPermitidas
+}));
+
+app.use(express.json({ limit: "100kb" }));
+
+app.get("/api/health", async (_req, res) => {
   try {
-    const conn = await mysql.createConnection({host:process.env.DB_HOST ?? 'mysql',user:process.env.DB_USER ?? 'originie_app',password:process.env.DB_PASSWORD,database:process.env.DB_NAME ?? 'originie'});
-    await conn.query('SELECT 1'); await conn.end();
-    res.json({api:'ok',banco:'ok'});
-  } catch { res.status(503).json({api:'ok',banco:'indisponivel'}); }
+    await banco.query("SELECT 1");
+
+    res.json({
+      api: "ok",
+      banco: "ok"
+    });
+  } catch (erro) {
+    console.error("Erro na conexão com MySQL:", erro);
+
+    res.status(503).json({
+      api: "ok",
+      banco: "indisponivel"
+    });
+  }
 });
-app.listen(Number(process.env.PORT ?? 3000),'0.0.0.0',()=>console.log('API Originie iniciada'));
+
+app.use("/api/auth", rotasAutenticacao);
+
+const PORT = Number(process.env.PORT ?? 3000);
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`API Originie iniciada na porta ${PORT}`);
+});
