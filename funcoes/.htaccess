@@ -1,0 +1,126 @@
+# ========================================================
+# ORIGINIE AUDIOVISUAL - CONFIGURAÇÕES DE SEGURANÇA
+# ========================================================
+# Este arquivo configura o Apache para segurança e
+# otimização da aplicação
+
+# Desabilitar listagem de diretórios
+Options -Indexes
+
+# Ativar rewrite engine
+RewriteEngine On
+
+# Base do projeto
+RewriteBase /originie/
+
+# Forçar HTTPS (descomentar se usar SSL)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Redirecionar para index.php se arquivo não existir
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
+
+# ========================================================
+# PROTEÇÃO DE ARQUIVOS SENSÍVEIS
+# ========================================================
+
+# Bloquear acesso a arquivos SQL
+<FilesMatch "\.sql$">
+    Deny from all
+</FilesMatch>
+
+# Bloquear acesso a arquivos .env
+<FilesMatch "^\.env$">
+    Deny from all
+</FilesMatch>
+
+# Bloquear acesso a .htaccess
+<FilesMatch "^\.htaccess$">
+    Deny from all
+</FilesMatch>
+
+# Bloquear acesso a configurações
+<FilesMatch "(config|conexao)\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# ========================================================
+# HEADERS DE SEGURANÇA
+# ========================================================
+
+# Prevenir MIME sniffing
+Header always set X-Content-Type-Options "nosniff"
+
+# XSS Protection
+Header always set X-XSS-Protection "1; mode=block"
+
+# Framebusting
+Header always set X-Frame-Options "SAMEORIGIN"
+
+# Content Security Policy (básico)
+Header always set Content-Security-Policy "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; script-src 'self' https: 'unsafe-inline' 'unsafe-eval'; style-src 'self' https: 'unsafe-inline';"
+
+# ========================================================
+# COMPRESSÃO DE DADOS
+# ========================================================
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# ========================================================
+# CACHE CONTROL
+# ========================================================
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # Imagens
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    
+    # CSS e JavaScript
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType text/javascript "access plus 1 month"
+    
+    # Fontes
+    ExpiresByType font/ttf "access plus 1 year"
+    ExpiresByType font/otf "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    
+    # Padrão
+    ExpiresDefault "access plus 2 days"
+</IfModule>
+
+# ========================================================
+# CONFIGURAÇÕES PHP
+# ========================================================
+
+# Configurar valores de upload
+php_value upload_max_filesize 50M
+php_value post_max_size 50M
+php_value max_execution_time 300
+
+# Desabilitar exposição de versão PHP
+Header always unset X-Powered-By
+Header unset X-Powered-By
+
+# ========================================================
+# REDIRECIONAMENTOS
+# ========================================================
+
+# Redirecionar www para não-www (descomentar se necessário)
+# RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
+# RewriteRule ^(.*)$ http://%1/$1 [R=301,L]
+
+# Redirecionar URLs sem trailing slash para com trailing slash
+# RewriteCond %{REQUEST_FILENAME} !-f
+# RewriteCond %{REQUEST_URI} !(.*)/$
+# RewriteRule ^(.*)$ $1/ [R=301,L]
