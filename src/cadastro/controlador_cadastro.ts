@@ -1,9 +1,15 @@
-
 import { Request, Response } from "express";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import banco from "../configuracao/banco_dados";
+
+import {
+  limparCpf,
+  validarCpf,
+  validarEmail,
+  avaliarSenha
+} from "./validacoes_cadastro";
 
 interface Usuario extends RowDataPacket {
   id: number;
@@ -14,38 +20,7 @@ interface Usuario extends RowDataPacket {
   tipo: "usuario" | "admin";
 }
 
-function limparCpf(cpf: string): string {
-  return cpf.replace(/\D/g, "");
-}
 
-function validarCpf(valor: string): boolean {
-  const cpf = limparCpf(valor);
-
-  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) {
-    return false;
-  }
-
-  for (let tamanho = 9; tamanho <= 10; tamanho++) {
-    let soma = 0;
-
-    for (let i = 0; i < tamanho; i++) {
-      soma += Number(cpf[i]) * (tamanho + 1 - i);
-    }
-
-    const resto = (soma * 10) % 11;
-    const digito = resto === 10 ? 0 : resto;
-
-    if (digito !== Number(cpf[tamanho])) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function validarEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
 function dadosPublicos(usuario: Usuario) {
   return {
@@ -101,12 +76,15 @@ export async function cadastrar(
       return;
     }
 
-    if (senha.length < 8 || Buffer.byteLength(senha, "utf8") > 72) {
-      res.status(400).json({
-        mensagem: "A senha deve ter pelo menos 8 caracteres e até 72 bytes."
-      });
-      return;
-    }
+   const avaliacaoSenha = avaliarSenha(senha);
+
+if (!avaliacaoSenha.valida) {
+  res.status(400).json({
+    mensagem: avaliacaoSenha.mensagem,
+    nivelSenha: avaliacaoSenha.nivel
+  });
+  return;
+}
 
     const senhaCriptografada = await bcrypt.hash(senha, 12);
 
