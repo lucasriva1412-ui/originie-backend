@@ -1,15 +1,12 @@
+
 import { Request, Response } from "express";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import banco from "../configuracao/banco_dados";
 
-import {
-  limparCpf,
-  validarCpf,
-  validarEmail,
-  avaliarSenha
-} from "./validacoes_cadastro";
+import banco from "../configuracao/banco_dados";
+import { UsuarioCadastro } from "./usuario_cadastro";
+import { avaliarSenha } from "./validacoes_cadastro";
 
 interface Usuario extends RowDataPacket {
   id: number;
@@ -20,8 +17,6 @@ interface Usuario extends RowDataPacket {
   tipo: "usuario" | "admin";
 }
 
-
-
 function dadosPublicos(usuario: Usuario) {
   return {
     id: usuario.id,
@@ -30,6 +25,31 @@ function dadosPublicos(usuario: Usuario) {
     email: usuario.email,
     tipo: usuario.tipo
   };
+}
+
+function mensagemErroCadastro(erro: unknown): string | null {
+  if (
+    erro instanceof Error &&
+    [
+      "Nome inválido.",
+      "O nome deve ter entre 3 e 100 caracteres.",
+      "CPF inválido.",
+      "E-mail inválido."
+    ].includes(erro.message)
+  ) {
+    return erro.message;
+  }
+
+  return null;
+}
+
+function ehErroDuplicidade(erro: unknown): boolean {
+  return (
+    typeof erro === "object" &&
+    erro !== null &&
+    "code" in erro &&
+    erro.code === "ER_DUP_ENTRY"
+  );
 }
 
 export async function cadastrar(
@@ -51,66 +71,59 @@ export async function cadastrar(
       return;
     }
 
-    const nomeLimpo = nome.trim();
-    const cpfLimpo = limparCpf(cpf);
-    const emailLimpo = email.trim().toLowerCase();
+    const usuarioCadastro = new UsuarioCadastro(
+      nome,
+      cpf,
+      email
+    );
 
-    if (nomeLimpo.length < 3 || nomeLimpo.length > 100) {
+    const avaliacaoSenha = avaliarSenha(senha);
+
+    if (!avaliacaoSenha.valida) {
       res.status(400).json({
-        mensagem: "O nome deve ter entre 3 e 100 caracteres."
+        mensagem: avaliacaoSenha.mensagem,
+        nivelSenha: avaliacaoSenha.nivel
       });
       return;
     }
 
-    if (!validarCpf(cpfLimpo)) {
-      res.status(400).json({
-        mensagem: "CPF inválido."
-      });
-      return;
-    }
-
-    if (!validarEmail(emailLimpo) || emailLimpo.length > 150) {
-      res.status(400).json({
-        mensagem: "E-mail inválido."
-      });
-      return;
-    }
-
-   const avaliacaoSenha = avaliarSenha(senha);
-
-if (!avaliacaoSenha.valida) {
-  res.status(400).json({
-    mensagem: avaliacaoSenha.mensagem,
-    nivelSenha: avaliacaoSenha.nivel
-  });
-  return;
-}
+    const dados = usuarioCadastro.dadosParaCadastro;
 
     const senhaCriptografada = await bcrypt.hash(senha, 12);
 
     const [resultado] = await banco.execute<ResultSetHeader>(
       `INSERT INTO usuarios (nome, cpf, email, senha, tipo)
        VALUES (?, ?, ?, ?, 'usuario')`,
-      [nomeLimpo, cpfLimpo, emailLimpo, senhaCriptografada]
+      [
+        dados.nome,
+        dados.cpf,
+        dados.email,
+        senhaCriptografada
+      ]
     );
 
     res.status(201).json({
       mensagem: "Cadastro realizado com sucesso.",
+      nivelSenha: avaliacaoSenha.nivel,
       usuario: {
         id: resultado.insertId,
-        nome: nomeLimpo,
-        cpf: cpfLimpo,
-        email: emailLimpo,
+        nome: dados.nome,
+        cpf: dados.cpf,
+        email: dados.email,
         tipo: "usuario"
       }
     });
   } catch (erro) {
-    if (
-      typeof erro === "object" &&
-      erro !== null &&
-      "code" in erro &&
-      erro.code === "ER_DUP_ENTRY"
-    ) {
+    const mensagemValidacao = mensagemErroCadastro(erro);
+
+    if (mensagemValidacao) {
+      res.status(400).json({
+        mensagem: mensagemValidacao
+      });
+      return;
+    }
+
+    if (ehErroDuplicidade(erro)) {
       res.status(409).json({
         mensagem: "E-mail ou CPF já cadastrado."
       });
@@ -118,6 +131,7 @@ if (!avaliacaoSenha.valida) {
     }
 
     console.error("Erro ao cadastrar:", erro);
+
     res.status(500).json({
       mensagem: "Erro interno ao realizar cadastro."
     });
@@ -131,7 +145,10 @@ export async function entrar(
   try {
     const { email, senha } = req.body ?? {};
 
-    if (typeof email !== "string" || typeof senha !== "string") {
+    if (
+      typeof email !== "string" ||
+      typeof senha !== "string"
+    ) {
       res.status(400).json({
         mensagem: "Informe o e-mail e a senha."
       });
@@ -148,7 +165,10 @@ export async function entrar(
 
     const usuario = usuarios[0];
 
-    if (!usuario || !(await bcrypt.compare(senha, usuario.senha))) {
+    if (
+      !usuario ||
+      !(await bcrypt.compare(senha, usuario.senha))
+    ) {
       res.status(401).json({
         mensagem: "E-mail ou senha incorretos."
       });
@@ -183,6 +203,7 @@ export async function entrar(
     });
   } catch (erro) {
     console.error("Erro ao entrar:", erro);
+
     res.status(500).json({
       mensagem: "Erro interno ao realizar login."
     });
@@ -214,6 +235,7 @@ export async function consultarPerfil(
     });
   } catch (erro) {
     console.error("Erro ao consultar perfil:", erro);
+
     res.status(500).json({
       mensagem: "Erro interno ao consultar perfil."
     });
@@ -238,56 +260,56 @@ export async function atualizarPerfil(
       return;
     }
 
-    const nomeLimpo = nome.trim();
-    const cpfLimpo = limparCpf(cpf);
-    const emailLimpo = email.trim().toLowerCase();
+    const usuarioCadastro = new UsuarioCadastro(
+      nome,
+      cpf,
+      email
+    );
 
-    if (nomeLimpo.length < 3 || nomeLimpo.length > 100) {
-      res.status(400).json({
-        mensagem: "Nome inválido."
-      });
-      return;
-    }
-
-    if (!validarCpf(cpfLimpo)) {
-      res.status(400).json({
-        mensagem: "CPF inválido."
-      });
-      return;
-    }
-
-    if (!validarEmail(emailLimpo) || emailLimpo.length > 150) {
-      res.status(400).json({
-        mensagem: "E-mail inválido."
-      });
-      return;
-    }
+    const dados = usuarioCadastro.dadosParaCadastro;
 
     await banco.execute(
       `UPDATE usuarios
        SET nome = ?, cpf = ?, email = ?
        WHERE id = ?`,
-      [nomeLimpo, cpfLimpo, emailLimpo, req.usuario!.id]
+      [
+        dados.nome,
+        dados.cpf,
+        dados.email,
+        req.usuario!.id
+      ]
     );
 
     const [usuarios] = await banco.execute<Usuario[]>(
       `SELECT id, nome, cpf, email, tipo
        FROM usuarios
-       WHERE id = ?`,
+       WHERE id = ?
+       LIMIT 1`,
       [req.usuario!.id]
     );
+
+    if (!usuarios.length) {
+      res.status(404).json({
+        mensagem: "Usuário não encontrado."
+      });
+      return;
+    }
 
     res.json({
       mensagem: "Perfil atualizado com sucesso.",
       usuario: dadosPublicos(usuarios[0])
     });
   } catch (erro) {
-    if (
-      typeof erro === "object" &&
-      erro !== null &&
-      "code" in erro &&
-      erro.code === "ER_DUP_ENTRY"
-    ) {
+    const mensagemValidacao = mensagemErroCadastro(erro);
+
+    if (mensagemValidacao) {
+      res.status(400).json({
+        mensagem: mensagemValidacao
+      });
+      return;
+    }
+
+    if (ehErroDuplicidade(erro)) {
       res.status(409).json({
         mensagem: "E-mail ou CPF já cadastrado."
       });
@@ -295,6 +317,7 @@ export async function atualizarPerfil(
     }
 
     console.error("Erro ao atualizar perfil:", erro);
+
     res.status(500).json({
       mensagem: "Erro interno ao atualizar perfil."
     });
