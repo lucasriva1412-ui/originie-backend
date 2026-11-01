@@ -25,5 +25,30 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+
+    container_name: originie-backend
+    restart: unless-stopped
+
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: originie_app
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: originie
+      JWT_SECRET: ${JWT_SECRET:?Configure JWT_SECRET no arquivo .env}
+
+    ports:
+      - "127.0.0.1:3001:3000"
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
 volumes:
   originie_mysql_data:
