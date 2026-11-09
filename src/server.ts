@@ -5,6 +5,7 @@ import cors from "cors";
 
 import banco from "./configuracao/banco_dados";
 import rotasAutenticacao from "./rotas/rotas_autenticacao";
+import rotasServicos from "./rotas/rotas_servicos";
 
 const app = express();
 
@@ -39,6 +40,8 @@ app.get("/api/health", async (_req, res) => {
 });
 
 app.use("/api/auth", rotasAutenticacao);
+
+app.use("/api/servicos", rotasServicos);
 
 const PORT = Number(process.env.PORT ?? 3000);
 
