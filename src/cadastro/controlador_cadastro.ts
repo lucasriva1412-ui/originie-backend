@@ -242,20 +242,69 @@ export async function consultarPerfil(
   }
 }
 
+
 export async function atualizarPerfil(
   req: Request,
   res: Response
 ): Promise<void> {
   try {
-    const { nome, cpf, email } = req.body ?? {};
+    const {
+      nome,
+      cpf,
+      senhaAtual,
+      novaSenha
+    } = req.body ?? {};
+
+    if (
+      Object.prototype.hasOwnProperty.call(
+        req.body ?? {},
+        "email"
+      )
+    ) {
+      res.status(400).json({
+        mensagem: "Não é permitido alterar o e-mail."
+      });
+      return;
+    }
 
     if (
       typeof nome !== "string" ||
       typeof cpf !== "string" ||
-      typeof email !== "string"
+      typeof senhaAtual !== "string" ||
+      typeof novaSenha !== "string"
     ) {
       res.status(400).json({
-        mensagem: "Informe nome, CPF e e-mail."
+        mensagem:
+          "Nome, CPF, senha atual e nova senha são obrigatórios."
+      });
+      return;
+    }
+
+    const [usuarios] = await banco.execute<Usuario[]>(
+      `SELECT id, nome, cpf, email, senha, tipo
+       FROM usuarios
+       WHERE id = ?
+       LIMIT 1`,
+      [req.usuario!.id]
+    );
+
+    const usuario = usuarios[0];
+
+    if (!usuario) {
+      res.status(404).json({
+        mensagem: "Usuário não encontrado."
+      });
+      return;
+    }
+
+    const senhaCorreta = await bcrypt.compare(
+      senhaAtual,
+      usuario.senha
+    );
+
+    if (!senhaCorreta) {
+      res.status(401).json({
+        mensagem: "Senha atual incorreta."
       });
       return;
     }
@@ -263,41 +312,51 @@ export async function atualizarPerfil(
     const usuarioCadastro = new UsuarioCadastro(
       nome,
       cpf,
-      email
+      usuario.email
     );
 
-    const dados = usuarioCadastro.dadosParaCadastro;
+    const avaliacaoSenha = avaliarSenha(novaSenha);
 
-    await banco.execute(
-      `UPDATE usuarios
-       SET nome = ?, cpf = ?, email = ?
-       WHERE id = ?`,
-      [
-        dados.nome,
-        dados.cpf,
-        dados.email,
-        req.usuario!.id
-      ]
-    );
-
-    const [usuarios] = await banco.execute<Usuario[]>(
-      `SELECT id, nome, cpf, email, tipo
-       FROM usuarios
-       WHERE id = ?
-       LIMIT 1`,
-      [req.usuario!.id]
-    );
-
-    if (!usuarios.length) {
-      res.status(404).json({
-        mensagem: "Usuário não encontrado."
+    if (!avaliacaoSenha.valida) {
+      res.status(400).json({
+        mensagem: avaliacaoSenha.mensagem,
+        nivelSenha: avaliacaoSenha.nivel
       });
       return;
     }
 
+    const dados = usuarioCadastro.dadosParaCadastro;
+
+    const senhaCriptografada = await bcrypt.hash(
+      novaSenha,
+      12
+    );
+
+    await banco.execute(
+      `UPDATE usuarios
+       SET nome = ?, cpf = ?, senha = ?
+       WHERE id = ?`,
+      [
+        dados.nome,
+        dados.cpf,
+        senhaCriptografada,
+        req.usuario!.id
+      ]
+    );
+
+    const [usuariosAtualizados] =
+      await banco.execute<Usuario[]>(
+        `SELECT id, nome, cpf, email, tipo
+         FROM usuarios
+         WHERE id = ?
+         LIMIT 1`,
+        [req.usuario!.id]
+      );
+
     res.json({
       mensagem: "Perfil atualizado com sucesso.",
-      usuario: dadosPublicos(usuarios[0])
+      nivelSenha: avaliacaoSenha.nivel,
+      usuario: dadosPublicos(usuariosAtualizados[0])
     });
   } catch (erro) {
     const mensagemValidacao = mensagemErroCadastro(erro);
@@ -311,7 +370,7 @@ export async function atualizarPerfil(
 
     if (ehErroDuplicidade(erro)) {
       res.status(409).json({
-        mensagem: "E-mail ou CPF já cadastrado."
+        mensagem: "CPF já cadastrado."
       });
       return;
     }
