@@ -334,3 +334,87 @@ export async function excluirServico(
     tratarErro(res, erro);
   }
 }
+
+
+export async function listarServicosPublicos(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const paginaTexto = req.query.pagina ?? "1";
+    const limiteTexto = req.query.limite ?? "10";
+
+    if (
+      typeof paginaTexto !== "string" ||
+      typeof limiteTexto !== "string" ||
+      !/^[1-9]\d*$/.test(paginaTexto) ||
+      !/^[1-9]\d*$/.test(limiteTexto)
+    ) {
+      res.status(400).json({
+        mensagem: "Paginação inválida."
+      });
+      return;
+    }
+
+    const pagina = Number(paginaTexto);
+    const limite = Number(limiteTexto);
+
+    if (
+      !Number.isSafeInteger(pagina) ||
+      !Number.isSafeInteger(limite) ||
+      limite > 100
+    ) {
+      res.status(400).json({
+        mensagem: "Página ou limite inválido."
+      });
+      return;
+    }
+
+    const offset = (pagina - 1) * limite;
+
+    if (!Number.isSafeInteger(offset)) {
+      res.status(400).json({
+        mensagem: "Página fora do intervalo."
+      });
+      return;
+    }
+
+    const [totais] = await banco.execute<Total[]>(
+      `SELECT COUNT(*) AS total
+       FROM servicos_cat
+       WHERE ativo = 1`
+    );
+
+    const [servicos] = await banco.execute<Servico[]>(
+      `SELECT
+         id,
+         nome,
+         slug,
+         descricao,
+         preco,
+         categoria,
+         video
+       FROM servicos_cat
+       WHERE ativo = 1
+       ORDER BY id DESC
+       LIMIT ? OFFSET ?`,
+      [limite, offset]
+    );
+
+    const total = totais[0].total;
+
+    res.json({
+      pagina,
+      limite,
+      total,
+      totalPaginas: Math.ceil(total / limite),
+      dados: servicos
+    });
+  } catch (erro) {
+    console.error("Erro ao listar serviços públicos:", erro);
+
+    res.status(500).json({
+      mensagem: "Erro interno ao buscar serviços."
+    });
+  }
+}
