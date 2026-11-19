@@ -17,32 +17,17 @@ import {
 
 const rotas = Router();
 
-// Rota pública: não exige login
+// Área pública
 rotas.get("/publicos", listarServicosPublicos);
 
-// Rotas protegidas por JWT
+// Área administrativa
 rotas.use(verificarToken);
+rotas.use(verificarAdministrador);
 
 rotas.get("/", listarServicos);
 rotas.get("/:id", consultarServico);
-
-// Operações exclusivas de administradores
-rotas.post(
-  "/",
-  verificarAdministrador,
-  criarServico
-);
-
-rotas.put(
-  "/:id",
-  verificarAdministrador,
-  atualizarServico
-);
-
-rotas.delete(
-  "/:id",
-  verificarAdministrador,
-  excluirServico
-);
+rotas.post("/", criarServico);
+rotas.put("/:id", atualizarServico);
+rotas.delete("/:id", excluirServico);
 
 export default rotas;
