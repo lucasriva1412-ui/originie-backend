@@ -11,12 +11,20 @@ import {
 } from "../orcamentos/controlador_orcamentos";
 
 import {
+  solicitarOrcamento
+} from "../orcamentos/controlador_solicitacao_publica";
+
+import {
   verificarToken,
   verificarAdministrador
 } from "../verificacao/verificar_token";
 
 const rotas = Router();
 
+// Rota publica: visitante solicita orcamento sem login
+rotas.post("/solicitar", solicitarOrcamento);
+
+// Todas as rotas abaixo exigem administrador
 rotas.use(verificarToken);
 rotas.use(verificarAdministrador);
 
