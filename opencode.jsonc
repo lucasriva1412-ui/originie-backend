@@ -1,0 +1,180 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permissions": [
+    {
+      "action": "read",
+      "resource": "*.env",
+      "effect": "deny"
+    },
+    {
+      "action": "read",
+      "resource": "*.env.*",
+      "effect": "deny"
+    },
+    {
+      "action": "read",
+      "resource": "*.env.example",
+      "effect": "allow"
+    },
+    {
+      "action": "edit",
+      "resource": "*.env",
+      "effect": "deny"
+    },
+    {
+      "action": "edit",
+      "resource": "*.env.*",
+      "effect": "deny"
+    },
+    {
+      "action": "edit",
+      "resource": "*.env.example",
+      "effect": "allow"
+    },
+    {
+      "action": "read",
+      "resource": "*credentials*",
+      "effect": "deny"
+    },
+    {
+      "action": "read",
+      "resource": "*secret*",
+      "effect": "deny"
+    },
+    {
+      "action": "read",
+      "resource": "*.pem",
+      "effect": "deny"
+    },
+    {
+      "action": "read",
+      "resource": "*.key",
+      "effect": "deny"
+    },
+    {
+      "action": "read",
+      "resource": "*id_rsa*",
+      "effect": "deny"
+    },
+    {
+      "action": "edit",
+      "resource": "*credentials*",
+      "effect": "deny"
+    },
+    {
+      "action": "edit",
+      "resource": "*secret*",
+      "effect": "deny"
+    },
+    {
+      "action": "edit",
+      "resource": "*.pem",
+      "effect": "deny"
+    },
+    {
+      "action": "edit",
+      "resource": "*.key",
+      "effect": "deny"
+    },
+    {
+      "action": "edit",
+      "resource": "*id_rsa*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git push *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "git push",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "git reset --hard *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "git clean *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "rm *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "del *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "Remove-Item *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "docker system prune *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "docker compose down *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "docker compose down",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "docker compose down -v *",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "docker compose down -v",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "docker compose down --volumes *",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "docker compose down --volumes",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "docker volume rm *",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "docker volume prune *",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "mysql *DROP *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "mysql *TRUNCATE *",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "mysql *DELETE *",
+      "effect": "ask"
+    }
+  ]
+}

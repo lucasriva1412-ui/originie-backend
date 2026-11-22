@@ -32,12 +32,12 @@ Aplicar estas regras ao criar ou modificar endpoints/handlers dos quatro domíni
 - **Recursos inexistentes**: tratar entidades não encontradas explicitamente (ex.: 404) em leitura/atualização/exclusão por id; não retornar sucesso para alvos inexistentes.
 - **Compatibilidade com o banco**: **não** alterar estrutura/schema/migrations/procedures nem a semântica de `banco_dados/originie.sql` sem autorização explícita; preservar compatibilidade com o banco MySQL existente.
 
-## Futuras skills (orientações)
-Quando estas skills forem adicionadas, devem seguir e codificar os padrões reais do repositório:
+## Skills do OpenCode
+As skills do projeto ficam em `.opencode/skills/<nome>/SKILL.md` e devem ser usadas conforme o contexto:
 
-- **`autenticacao-segura`**: emissão/verificação de JWT HS256 (`JWT_SECRET`, expiração/algoritmos conforme o código), tratamento de `Bearer`, `verificarToken`/`verificarAdministrador`, tipagem de `req.usuario`, hash/comparação de senhas com `bcrypt` e respostas de autenticação seguras sem vazar detalhes sensíveis.
-- **`crud-originie`**: layout rota+controlador por domínio (`rotas_*` ↔ `controlador_*`), convenções da API em português, validação rigorosa de entradas, acesso MySQL parametrizado via pool compartilhado, rotas privadas protegidas por JWT, restrições administrativas, paginação em listagens e tratamento correto de 404 para recursos ausentes em serviços/clientes/orçamentos/projetos.
-- **`docker-originie`**: modelo de build/execução do `Dockerfile` na raiz, serviços/redes do `originie_docker/docker-compose.yml`, configuração de proxy `/api` no Nginx, variáveis de ambiente para compose vs local e guardrails operacionais (sem remoção de volumes ou ações destrutivas no banco/stack sem autorização).
+- **`autenticacao-segura`** (`.opencode/skills/autenticacao-segura/SKILL.md`): usar ao implementar ou revisar cadastro/login, validação de e-mail/CPF, bcrypt, JWT, controle de acesso admin/usuário comum, edição do próprio perfil, imutabilidade de e-mail e tratamento seguro de erros de autenticação.
+- **`crud-originie`** (`.opencode/skills/crud-originie/SKILL.md`): usar ao criar ou alterar CRUDs de serviços, clientes, orçamentos e projetos finalizados; cobre validação, SQL parametrizado (`mysql2/promise`), paginação, códigos HTTP (400/401/403/404/409), relacionamentos, transações, proteção JWT/admin e proibição de exclusões destrutivas sem autorização.
+- **`docker-originie`** (`.opencode/skills/docker-originie/SKILL.md`): usar ao configurar/revisar Docker Compose, Dockerfile, Nginx, MySQL e integração React/backend/MySQL/Nginx; cobre proxy reverso, redes internas/externas, volumes, variáveis de ambiente e procedimentos seguros de inicialização/teste, sem remover volumes/bancos sem aprovação.
 
 ## Guardrails (obrigatórios)
 - **Segredos/credenciais**: não abrir, ler, imprimir ou modificar arquivos `.env`; não divulgar credenciais, tokens, segredos ou hashes de senha. Não acessar arquivos de credenciais para concluir tarefas.
