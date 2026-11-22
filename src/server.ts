@@ -10,6 +10,7 @@ import rotasServicos from "./rotas/rotas_servicos";
 import rotasClientes from "./rotas/rotas_clientes";
 import rotasOrcamentos from "./rotas/rotas_orcamentos";
 import rotasProjetos from "./rotas/rotas_projetos";
+import rotasAdmin from "./rotas/rotas_admin";
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use("/api/servicos", rotasServicos);
 app.use("/api/clientes", rotasClientes);
 app.use("/api/orcamentos", rotasOrcamentos);
 app.use("/api/projetos", rotasProjetos);
+app.use("/api/admin", rotasAdmin);
 
 const PORT = Number(process.env.PORT ?? 3000);
 
