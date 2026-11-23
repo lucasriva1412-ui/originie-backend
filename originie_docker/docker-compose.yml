@@ -29,7 +29,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: originie
       MYSQL_USER: originie_app
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
 
     volumes:
       - originie_mysql_data:/var/lib/mysql
